@@ -17,7 +17,11 @@ class _WorkoutLogScreenState extends State<WorkoutLogScreen> {
       builder: (c, snap) {
         final items = snap.data ?? [];
         return Scaffold(
-          body: ListView.builder(
+          body: items.isEmpty
+              ? const Center(
+            child: Text('No workouts yet. Tap "Add Workout" to create one.'),
+          )
+              : ListView.builder(
             itemCount: items.length,
             itemBuilder: (_, i) {
               final w = items[i];
@@ -26,22 +30,33 @@ class _WorkoutLogScreenState extends State<WorkoutLogScreen> {
                 subtitle: Text(w.pretty()),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline),
-                  onPressed: () async { await svc.delete(w.id!); setState((){}); },
+                  onPressed: () async {
+                    await svc.delete(w.id!);
+                    setState(() {});
+                  },
                 ),
                 onTap: () async {
-                  await Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => WorkoutUpsertScreen(existing: w)));
-                  setState((){});
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => WorkoutUpsertScreen(existing: w),
+                    ),
+                  );
+                  setState(() {});
                 },
               );
             },
           ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () async {
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutUpsertScreen()));
-              setState((){});
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const WorkoutUpsertScreen()),
+              );
+              setState(() {});
             },
-            label: const Text('Add Workout'), icon: const Icon(Icons.add),
+            label: const Text('Add Workout'),
+            icon: const Icon(Icons.add),
           ),
         );
       },
