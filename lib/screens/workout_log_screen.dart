@@ -10,6 +10,38 @@ class WorkoutLogScreen extends StatefulWidget {
 }
 
 class _WorkoutLogScreenState extends State<WorkoutLogScreen> {
+  Future<void> _addRoutineDialog() async {
+    final level = await showDialog<String>(
+      context: context,
+      builder: (_) => SimpleDialog(
+        title: const Text('Add Preset Routine'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'Beginner'),
+            child: const Text('Beginner'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'Intermediate'),
+            child: const Text('Intermediate'),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, 'Advanced'),
+            child: const Text('Advanced'),
+          ),
+          const Divider(height: 8),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+    if (level == null) return;
+    await WorkoutService.instance.insertRoutine(level);
+    if (!mounted) return;
+    setState(() {});
+  }
+
   Future<void> _openAdd() async {
     await Navigator.push(
       context,
@@ -29,6 +61,40 @@ class _WorkoutLogScreenState extends State<WorkoutLogScreen> {
     setState(() {});
   }
 
+  // NEW: reliable FAB action menu via bottom sheet
+  Future<void> _showAddMenu() async {
+    await showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.fitness_center),
+              title: const Text('Add Workout'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _openAdd();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.playlist_add_check),
+              title: const Text('Add Routine'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _addRoutineDialog();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final svc = WorkoutService.instance;
@@ -41,7 +107,7 @@ class _WorkoutLogScreenState extends State<WorkoutLogScreen> {
         return Scaffold(
           body: items.isEmpty
               ? const Center(
-            child: Text('No workouts yet. Tap "Add Workout" to create one.'),
+            child: Text('No workouts yet. Tap the + button to get started.'),
           )
               : ListView.builder(
             itemCount: items.length,
@@ -62,10 +128,12 @@ class _WorkoutLogScreenState extends State<WorkoutLogScreen> {
               );
             },
           ),
+
+
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: _openAdd,
+            onPressed: _showAddMenu,
             icon: const Icon(Icons.add),
-            label: const Text('Add Workout'),
+            label: const Text('Add'),
           ),
         );
       },

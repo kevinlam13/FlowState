@@ -22,4 +22,44 @@ class WorkoutService {
 
   Future<int> delete(int id) async =>
       _db.delete('workouts', where: 'id = ?', whereArgs: [id]);
+
+  /// Insert a preset routine for today
+  Future<void> insertRoutine(String level) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Simple presets (feel free to tweak)
+    List<Workout> plan;
+    switch (level) {
+      case 'Beginner':
+        plan = [
+          Workout(type: 'Walk', durationMin: 20, date: today),
+          Workout(type: 'Light Bench', sets: 3, reps: 10, date: today),
+          Workout(type: 'Run', durationMin: 10, date: today),
+        ];
+        break;
+      case 'Intermediate':
+        plan = [
+          Workout(type: 'Run', durationMin: 25, date: today),
+          Workout(type: 'Heavy Barbell Squat', sets: 4, reps: 8, date: today),
+          Workout(type: 'Volleyball', durationMin: 20, date: today),
+        ];
+        break;
+      case 'Advanced':
+      default:
+        plan = [
+          Workout(type: 'Run', durationMin: 60, date: today),
+          Workout(type: 'Lift -deadlift MAX', sets: 8, reps: 5, date: today),
+          Workout(type: 'Swim', durationMin: 30, date: today),
+        ];
+        break;
+    }
+
+    final batch = _db.batch();
+    for (final w in plan) {
+      final row = w.toRow()..remove('id');
+      batch.insert('workouts', row);
+    }
+    await batch.commit(noResult: true);
+  }
 }

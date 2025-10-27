@@ -10,7 +10,8 @@ class ProgressScreen extends StatefulWidget {
 }
 
 class _ProgressScreenState extends State<ProgressScreen> {
-  int _range = 7; // 7 = daily, 30 = weekly buckets
+  /// 7 = daily bars (Mon–Sun), 30 = weekly buckets (last ~5 weeks)
+  int _range = 7;
 
   @override
   Widget build(BuildContext context) {
@@ -26,25 +27,56 @@ class _ProgressScreenState extends State<ProgressScreen> {
         final maxCount = data.isEmpty ? 1 : data.map((d) => d.workouts).reduce(math.max);
         final maxY = (maxCount + 1).toDouble();
 
+        // Secondary stats
+        final streakFut = AnalyticsService.instance.currentStreakDays();
+        final weekFut = AnalyticsService.instance.workoutsThisWeek();
+
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [
-                const Text('Workouts', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                SegmentedButton<int>(
-                  segments: const [
-                    ButtonSegment(value: 7, label: Text('7d')),
-                    ButtonSegment(value: 30, label: Text('30d')),
-                  ],
-                  selected: {_range},
-                  onSelectionChanged: (s) => setState(() => _range = s.first),
-                ),
-              ]),
+              Row(
+                children: [
+                  const Text(
+                    'Workouts',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(value: 7, label: Text('7d')),
+                      ButtonSegment(value: 30, label: Text('30d')),
+                    ],
+                    selected: {_range},
+                    onSelectionChanged: (s) => setState(() => _range = s.first),
+                  ),
+                ],
+              ),
               const SizedBox(height: 6),
               Text('Total: $total workouts', style: const TextStyle(color: Colors.black54, fontSize: 13)),
+              const SizedBox(height: 8),
+
+              // Streak + This week chips
+              FutureBuilder(
+                future: Future.wait([streakFut, weekFut]),
+                builder: (_, snap2) {
+                  if (snap2.connectionState != ConnectionState.done || !snap2.hasData) {
+                    return const SizedBox(height: 8);
+                  }
+                  final streak = (snap2.data![0]) as int;
+                  final thisWeek = (snap2.data![1]) as int;
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Chip(label: Text('Streak: $streak day${streak == 1 ? '' : 's'}')),
+                      Chip(label: Text('This week: $thisWeek')),
+                    ],
+                  );
+                },
+              ),
+
               const SizedBox(height: 12),
               Expanded(
                 child: Card(
@@ -59,9 +91,11 @@ class _ProgressScreenState extends State<ProgressScreen> {
                         minY: 0,
                         maxY: maxY,
                         gridData: FlGridData(
-                          show: true, drawVerticalLine: false,
+                          show: true,
+                          drawVerticalLine: false,
                           getDrawingHorizontalLine: (v) => FlLine(
-                            color: Colors.grey.shade200, strokeWidth: 1,
+                            color: Colors.grey.shade200,
+                            strokeWidth: 1,
                           ),
                         ),
                         borderData: FlBorderData(show: false),
@@ -77,9 +111,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
                             sideTitles: SideTitles(
                               showTitles: true,
                               reservedSize: 28,
-                              interval: 1,
+                              interval: 1, // integer steps
                               getTitlesWidget: (v, _) => Text(
-                                v.toInt().toString(), style: const TextStyle(fontSize: 10),
+                                v.toInt().toString(),
+                                style: const TextStyle(fontSize: 10),
                               ),
                             ),
                           ),
@@ -95,10 +130,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
                               getTitlesWidget: (x, _) {
                                 final i = x.toInt();
                                 if (i < 0 || i >= data.length) return const SizedBox.shrink();
-                                // Rotate a bit for readability; keep daily vs weekly labels
+
+                                // Rotate a bit for readability; weekly labels are longer
                                 return Transform.rotate(
                                   angle: -0.45,
-                                  child: Text(data[i].label, style: const TextStyle(fontSize: 9.5)),
+                                  child: Text(
+                                    data[i].label,
+                                    style: const TextStyle(fontSize: 10),
+                                  ),
                                 );
                               },
                             ),
@@ -129,8 +168,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
                               final label = data[group.x.toInt()].label;
                               final v = rod.toY.toStringAsFixed(0);
                               final unit = _range == 7 ? 'day' : 'week';
-                              return BarTooltipItem('$label\n$v workouts / $unit',
-                                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 12));
+                              return BarTooltipItem(
+                                '$label\n$v workouts / $unit',
+                                const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                              );
                             },
                           ),
                         ),
