@@ -105,7 +105,7 @@ class _WorkoutUpsertScreenState extends State<WorkoutUpsertScreen> {
               valueListenable: _type,
               builder: (_, v, __) => DropdownButtonFormField(
                 value: v,
-                items: const ['Run','Walk','Cycle','Lift','Swim']
+                items: const ['Run','Walk','Volleyball ','Lift','football']
                     .map((e)=>DropdownMenuItem(value:e, child: Text(e))).toList(),
                 onChanged: (val)=>_type.value = val!,
                 decoration: const InputDecoration(labelText: 'Type'),
